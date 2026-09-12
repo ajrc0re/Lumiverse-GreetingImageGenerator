@@ -1,0 +1,13 @@
+{
+  "name": "Lumiverse Greeting Image Generator",
+  "identifier": "lumiverse_greeting_image_generator",
+  "version": "1.0.0",
+  "author": "ajrc0re",
+  "github": "https://github.com/ajrc0re/Lumiverse-GreetingImageGenerator",
+  "homepage": "https://github.com/ajrc0re/Lumiverse-GreetingImageGenerator",
+  "description": "Illustrate existing character greetings using native prompt presets and image connection profiles.",
+  "permissions": ["characters", "chats", "images", "image_gen"],
+  "entry_backend": "dist/backend.js",
+  "entry_frontend": "dist/frontend.js",
+  "minimum_lumiverse_version": "1.2.0"
+}
