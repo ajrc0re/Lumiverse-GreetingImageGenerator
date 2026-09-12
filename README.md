@@ -66,4 +66,6 @@ Recognized image markup includes inline/reference Markdown images, HTML `<img sr
 
 ## Validation
 
+Active-character tracking uses the public state selector when available, with a public `getActiveChat()` fallback for older builds and builds reporting `spindle_authority_map_unwired`. The fallback checks for selection changes every 750 ms, refreshes on chat changes, and stops on extension unload. This prevents an unavailable selector from aborting drawer registration; it does not change permission grants.
+
 Tests cover source-preserving parsing and edits, prompt reuse, references, ownership checks, local persistence, mocked Catbox requests, queue interruption/recovery, and drawer interactions. Browser QA uses the isolated preview in light/dark themes and narrow/wide layouts. Automated checks do not perform paid generations or real Catbox uploads; those require an explicit live smoke test with a configured account.

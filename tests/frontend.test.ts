@@ -4,7 +4,7 @@ import { setup } from '../src/frontend'
 import { fixture } from './engine.test'
 import { DEFAULT_SETTINGS, type Job } from '../src/types'
 
-test('drawer workflow: edited prompt reuse, image removal/undo, filters, and character switching', async () => {
+test.each(['selector', 'unwired', 'legacy'])('drawer workflow with %s active-character API: prompt reuse, removal/undo, filters, and switching', async mode => {
   const win = new Window({ url: 'http://localhost:4318' }), saved = new Map<string, PropertyDescriptor | undefined>()
   for (const key of ['document', 'window', 'location', 'navigator', 'HTMLElement', 'FileReader']) {
     saved.set(key, Object.getOwnPropertyDescriptor(globalThis, key)); Object.defineProperty(globalThis, key, { value: (win as any)[key] || (key === 'window' ? win : undefined), configurable: true, writable: true })
@@ -31,7 +31,9 @@ test('drawer workflow: edited prompt reuse, image removal/undo, filters, and cha
     cleanup = setup({
       ui: { registerDrawerTab: () => ({ root: mount, onActivate: () => () => {}, setBadge: () => {}, destroy: () => mount.remove() }) },
       dom: { addStyle: () => () => {} }, components: { mountSelect: mounted, mountTextInput: mounted, mountTextArea: (t: any, o: any) => mounted(t, o, 'textarea'), mountNumericInput: mounted },
-      state: { get: () => active, subscribe: (_key: string, fn: any) => { states.push(fn); return () => {} } }, permissions: { getGranted: async () => ['characters', 'chats', 'images', 'image_gen'] },
+      state: mode === 'legacy' ? undefined : { get: () => { if (mode === 'unwired') throw new Error('PERMISSION_DENIED:spindle_authority_map_unwired — chat.active requires the spindle_authority_map_unwired permission'); return active }, subscribe: (_key: string, fn: any) => { states.push(fn); return () => {} } },
+      getActiveChat: () => active,
+      permissions: { getGranted: async () => ['characters', 'chats', 'images', 'image_gen'] },
       events: { on: (key: string, fn: any) => { events.set(key, fn); return () => {} } }, characters: { get: async () => f.card() },
       onBackendMessage: (fn: any) => { replies.push(fn); return () => {} },
       sendToBackend: async (message: any) => {
@@ -67,7 +69,7 @@ test('drawer workflow: edited prompt reuse, image removal/undo, filters, and cha
     const multi = Array.from(document.querySelectorAll<HTMLInputElement>('input[type=checkbox]')).find(i => i.parentElement?.textContent === 'Multiselect')!; multi.click(); find('Select all').click(); expect(mount.textContent).toContain('1 selected')
     expect(document.querySelector<HTMLInputElement>('[aria-label="Select Greeting 2"]')?.checked).toBe(true)
     expect(events.has('SPINDLE_PERMISSION_CHANGED')).toBe(true)
-    active = {}; states.forEach(fn => fn(active)); await flush(); expect(mount.textContent).toContain('No character selected')
+    active = {}; states.forEach(fn => fn(active)); events.get('CHAT_SWITCHED')?.(); await flush(); expect(mount.textContent).toContain('No character selected')
   } finally {
     cleanup?.(); await flush(); globalThis.fetch = previousFetch
     for (const [key, descriptor] of saved) if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]

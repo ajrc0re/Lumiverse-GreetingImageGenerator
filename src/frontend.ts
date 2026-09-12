@@ -1,4 +1,5 @@
 import type { SpindleFrontendContext } from 'lumiverse-spindle-types'
+import { watchActiveCharacter, type ActiveCharacter } from './active-character'
 import style from './styles.css' with { type: 'text' }
 import { greetings, resolveImage, settingsFrom, supportsReference } from './core'
 import { blobDataUrl, hostRequest, localDataUrl, prepareNative } from './native'
@@ -34,7 +35,7 @@ export function setup(ctx: SpindleFrontendContext) {
   const banner = el('div'), batchBar = el('div', 'gig-batch'); batchBar.hidden = true
   let page = 'greetings', destroyed = false, settings = structuredClone(DEFAULT_SETTINGS), hasSecret = false
   let connections: Connection[] = [], providers: Provider[] = [], native: NativeSettings = {}, parserLabel = 'Inherited from native Image Generation settings'
-  let character: Character | null = null, data: CharacterData = { guide: { style: '' }, jobs: [] }, active: { characterId?: string; chatId?: string } = {}
+  let character: Character | null = null, data: CharacterData = { guide: { style: '' }, jobs: [] }, active: ActiveCharacter = {}
   let granted: string[] = [], query = '', field = 'text', filter = 'all', multi = false, loading = true, nativeError = ''
   let running = false, stopRequested = false, promptAbort: AbortController | undefined, batchIds: string[] = [], batchCharacter = ''
   let loadRevision = 0, settingsTimer: ReturnType<typeof setTimeout> | undefined
@@ -482,10 +483,7 @@ export function setup(ctx: SpindleFrontendContext) {
     if (changed) { selected.clear(); expanded.clear(); character = null; closeSheet?.(); void safe(loadCharacter)() }
     else renderGreetings()
   }
-  if (ctx.state) {
-    active = ctx.state.get('chat.active') as typeof active
-    disposers.push(ctx.state.subscribe('chat.active', next => activeChanged(next as typeof active)))
-  } else notify('This Lumiverse version does not expose the active-character selector. Update Lumiverse to use this extension.', true)
+  disposers.push(watchActiveCharacter(ctx, activeChanged, error => notify(`Could not follow the active character: ${String(error)}`, true)))
   disposers.push(tab.onActivate(() => { if (!running) void safe(loadCharacter)() }))
   disposers.push(ctx.events.on('SPINDLE_PERMISSION_CHANGED', () => { void safe(async () => { granted = await ctx.permissions.getGranted(); if (!permitted() && running) { stopRequested = true; promptAbort?.abort(); closeSheet?.(); await rpc('stop', { characterId: batchCharacter, ids: batchIds }) } await bootstrap() })() }))
   disposers.push(ctx.events.on('CHARACTER_EDITED', payload => {

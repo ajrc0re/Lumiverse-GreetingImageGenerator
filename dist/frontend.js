@@ -1,3 +1,39 @@
+// src/active-character.ts
+function watchActiveCharacter(ctx, changed, report) {
+  try {
+    if (ctx.state) {
+      const initial = ctx.state.get("chat.active");
+      const unsubscribe2 = ctx.state.subscribe("chat.active", changed);
+      changed(initial);
+      return unsubscribe2;
+    }
+  } catch (error) {
+    if (!/spindle_authority_map_unwired|SELECTOR_UNKNOWN/.test(String(error))) {
+      report(error);
+      return () => {};
+    }
+  }
+  let previous;
+  const refresh = () => {
+    try {
+      const next = ctx.getActiveChat();
+      if (!previous || previous.characterId !== next.characterId || previous.chatId !== next.chatId) {
+        previous = next;
+        changed(next);
+      }
+    } catch (error) {
+      report(error);
+    }
+  };
+  refresh();
+  const unsubscribe = ctx.events.on("CHAT_SWITCHED", refresh);
+  const timer = setInterval(refresh, 750);
+  return () => {
+    clearInterval(timer);
+    unsubscribe();
+  };
+}
+
 // src/styles.css
 var styles_default = `.gig { --g-accent: var(--lumiverse-primary, #a594db); --g-bg: var(--lumiverse-bg, #18171e); --g-card: var(--lumiverse-fill-subtle, #24222d); --g-text: var(--lumiverse-text, #edeaf4); --g-muted: var(--lumiverse-text-muted, #a5a0b3); --g-border: var(--lumiverse-border, #3a3646); color: var(--g-text); font: inherit; font-size: 13px; height: 100%; min-height: 0; display: flex; flex-direction: column; position: relative; }
 .gig * { box-sizing: border-box; }
@@ -1377,11 +1413,7 @@ function setup(ctx) {
     } else
       renderGreetings();
   }
-  if (ctx.state) {
-    active = ctx.state.get("chat.active");
-    disposers.push(ctx.state.subscribe("chat.active", (next) => activeChanged(next)));
-  } else
-    notify("This Lumiverse version does not expose the active-character selector. Update Lumiverse to use this extension.", true);
+  disposers.push(watchActiveCharacter(ctx, activeChanged, (error) => notify(`Could not follow the active character: ${String(error)}`, true)));
   disposers.push(tab.onActivate(() => {
     if (!running)
       safe(loadCharacter)();
