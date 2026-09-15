@@ -68,6 +68,7 @@ function watchActiveCharacter(ctx, changed, report) {
 
 // src/styles.css
 var styles_default = `.gig { --g-accent: var(--lumiverse-primary, #a594db); --g-bg: var(--lumiverse-bg, #18171e); --g-card: var(--lumiverse-fill-subtle, #24222d); --g-text: var(--lumiverse-text, #edeaf4); --g-muted: var(--lumiverse-text-muted, #a5a0b3); --g-border: var(--lumiverse-border, #3a3646); color: var(--g-text); font: inherit; font-size: 13px; height: 100%; min-height: 0; display: flex; flex-direction: column; position: relative; }
+.gig-mount { width: 100%; height: 100%; min-height: 0; }
 .gig * { box-sizing: border-box; }
 .gig button, .gig input, .gig textarea, .gig select { font: inherit; }
 .gig button { cursor: pointer; }
@@ -127,8 +128,9 @@ var styles_default = `.gig { --g-accent: var(--lumiverse-primary, #a594db); --g-
 .gig-field { display: grid; gap: 7px; margin: 12px 0; }
 .gig-field > label { font-size: 12px; font-weight: 500; }
 .gig-sheet { position: absolute; inset: 0; z-index: 5; background: var(--g-bg); overflow: auto; padding: 18px 14px; display: flex; flex-direction: column; gap: 14px; }
+.gig-sheet > * { flex-shrink: 0; }
 .gig-sheet > img { width: 100%; max-height: 65vh; object-fit: contain; border-radius: 9px; background: var(--g-card); }
-.gig-sheet .gig-actions { margin-top: auto; padding-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.gig-sheet .gig-actions { margin-top: 0; padding-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; position: sticky; bottom: 0; background: var(--g-bg); }
 .gig-reference { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; }
 .gig-recovery { border-top: 1px solid var(--g-border); margin-top: 10px; padding-top: 10px; display: grid; gap: 8px; }
 .gig-inline-check { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; cursor: pointer; }
@@ -419,6 +421,7 @@ function image(url, alt, cls = "") {
 }
 function setup(ctx) {
   const tab = ctx.ui.registerDrawerTab({ id: "greeting-images", title: "Greeting Images", shortName: "Images", headerTitle: "Greeting Images", description: "Illustrate your character’s existing greetings", keywords: ["greetings", "images", "catbox"], iconSvg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 6-6 4 4 3-3 5 5"/></svg>' });
+  tab.root.classList.add("gig-mount");
   const root = el("div", "gig");
   tab.root.append(root);
   const removeStyle = ctx.dom.addStyle(styles_default);

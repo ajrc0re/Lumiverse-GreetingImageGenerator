@@ -1,4 +1,5 @@
 .gig { --g-accent: var(--lumiverse-primary, #a594db); --g-bg: var(--lumiverse-bg, #18171e); --g-card: var(--lumiverse-fill-subtle, #24222d); --g-text: var(--lumiverse-text, #edeaf4); --g-muted: var(--lumiverse-text-muted, #a5a0b3); --g-border: var(--lumiverse-border, #3a3646); color: var(--g-text); font: inherit; font-size: 13px; height: 100%; min-height: 0; display: flex; flex-direction: column; position: relative; }
+.gig-mount { width: 100%; height: 100%; min-height: 0; }
 .gig * { box-sizing: border-box; }
 .gig button, .gig input, .gig textarea, .gig select { font: inherit; }
 .gig button { cursor: pointer; }
@@ -58,8 +59,9 @@
 .gig-field { display: grid; gap: 7px; margin: 12px 0; }
 .gig-field > label { font-size: 12px; font-weight: 500; }
 .gig-sheet { position: absolute; inset: 0; z-index: 5; background: var(--g-bg); overflow: auto; padding: 18px 14px; display: flex; flex-direction: column; gap: 14px; }
+.gig-sheet > * { flex-shrink: 0; }
 .gig-sheet > img { width: 100%; max-height: 65vh; object-fit: contain; border-radius: 9px; background: var(--g-card); }
-.gig-sheet .gig-actions { margin-top: auto; padding-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.gig-sheet .gig-actions { margin-top: 0; padding-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; position: sticky; bottom: 0; background: var(--g-bg); }
 .gig-reference { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; }
 .gig-recovery { border-top: 1px solid var(--g-border); margin-top: 10px; padding-top: 10px; display: grid; gap: 8px; }
 .gig-inline-check { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; cursor: pointer; }

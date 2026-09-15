@@ -27,6 +27,7 @@ function image(url: string, alt: string, cls = '') {
 
 export function setup(ctx: SpindleFrontendContext) {
   const tab = ctx.ui.registerDrawerTab({ id: 'greeting-images', title: 'Greeting Images', shortName: 'Images', headerTitle: 'Greeting Images', description: 'Illustrate your character’s existing greetings', keywords: ['greetings', 'images', 'catbox'], iconSvg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 6-6 4 4 3-3 5 5"/></svg>' })
+  tab.root.classList.add('gig-mount')
   const root = el('div', 'gig'); tab.root.append(root)
   const removeStyle = ctx.dom.addStyle(style)
   const tabs = el('div', 'gig-tabs'); tabs.setAttribute('role', 'tablist')
