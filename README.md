@@ -17,6 +17,8 @@ bun run build
 
 The isolated UI preview runs with `bun run preview` at `http://127.0.0.1:4318`. It uses in-memory sample characters, simulated generations, and lightweight stand-ins for Lumiverse’s mounted form components. It does not contact image providers or Catbox. Real host components are used in the installed extension.
 
+Local-network HTTP access is supported. Frontend request IDs use `crypto.getRandomValues()`, which works without HTTPS. **Copy image link** falls back to the browser's legacy copy action or a selectable link when the Clipboard API is unavailable. Server-side image job IDs and Catbox credential hashing remain in the Bun backend.
+
 ## Use
 
 1. Open a character’s chat, then open **Greeting Images** from the drawer or command palette.

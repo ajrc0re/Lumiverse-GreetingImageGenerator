@@ -1,3 +1,35 @@
+// src/browser-compat.ts
+function createRequestId() {
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+async function copyText(text, container) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {}
+  }
+  const focus = document.activeElement;
+  const field = document.createElement("textarea");
+  field.value = text;
+  field.readOnly = true;
+  field.setAttribute("aria-label", "Image link");
+  field.style.cssText = "position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;font-size:16px;pointer-events:none";
+  container.append(field);
+  try {
+    field.focus({ preventScroll: true });
+    field.select();
+    field.setSelectionRange(0, text.length);
+    return document.execCommand?.("copy") === true;
+  } catch {
+    return false;
+  } finally {
+    field.remove();
+    focus?.focus({ preventScroll: true });
+  }
+}
+
 // src/active-character.ts
 function watchActiveCharacter(ctx, changed, report) {
   try {
@@ -414,7 +446,7 @@ function setup(ctx) {
   function rpc(action2, input = {}, timeout = 360000) {
     if (destroyed)
       return Promise.reject(new Error("Extension closed"));
-    const requestId = crypto.randomUUID();
+    const requestId = createRequestId();
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         pending.delete(requestId);
@@ -840,8 +872,24 @@ function setup(ctx) {
     s.panel.append(el("p", "gig-muted", occurrence.source));
     const row = el("div", "gig-actions");
     row.append(action("Copy image link", async () => {
-      await navigator.clipboard.writeText(resolved.url ? new URL(resolved.url, location.origin).href : occurrence.source);
-      notify("Image link copied.");
+      const url = resolved.url ? new URL(resolved.url, location.origin).href : occurrence.source;
+      if (await copyText(url, s.panel))
+        notify("Image link copied.");
+      else {
+        let field2 = s.panel.querySelector("[data-copy-link]");
+        if (!field2) {
+          field2 = el("input");
+          field2.type = "text";
+          field2.readOnly = true;
+          field2.dataset.copyLink = "";
+          field2.setAttribute("aria-label", "Image link to copy");
+          s.panel.append(field2);
+        }
+        field2.value = url;
+        field2.focus();
+        field2.select();
+        notify("Automatic copying is unavailable. Copy the selected image link.");
+      }
     }));
     if (resolved.url)
       row.append(action("Use as set reference", async () => {
@@ -1442,8 +1490,8 @@ function setup(ctx) {
     promptAbort?.abort();
     clearTimeout(settingsTimer);
     if (running)
-      ctx.sendToBackend({ type: "gig:request", requestId: crypto.randomUUID(), action: "stop", input: { characterId: batchCharacter, ids: batchIds } });
-    ctx.sendToBackend({ type: "gig:request", requestId: crypto.randomUUID(), action: "settings", input: settings });
+      ctx.sendToBackend({ type: "gig:request", requestId: createRequestId(), action: "stop", input: { characterId: batchCharacter, ids: batchIds } });
+    ctx.sendToBackend({ type: "gig:request", requestId: createRequestId(), action: "settings", input: settings });
     closeSheet?.();
     disposers.forEach((fn) => fn());
     handles.forEach((h) => h.destroy());

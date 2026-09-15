@@ -1,4 +1,5 @@
 import type { SpindleFrontendContext } from 'lumiverse-spindle-types'
+import { createRequestId, copyText } from './browser-compat'
 import { watchActiveCharacter, type ActiveCharacter } from './active-character'
 import style from './styles.css' with { type: 'text' }
 import { greetings, resolveImage, settingsFrom, supportsReference } from './core'
@@ -47,7 +48,7 @@ export function setup(ctx: SpindleFrontendContext) {
   const batchJobs = new Map<string, Job>()
   function rpc<T = any>(action: string, input: unknown = {}, timeout = 360_000): Promise<T> {
     if (destroyed) return Promise.reject(new Error('Extension closed'))
-    const requestId = crypto.randomUUID()
+    const requestId = createRequestId()
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => { pending.delete(requestId); reject(new Error('The extension request timed out. Check recent jobs before retrying.')) }, timeout)
       pending.set(requestId, { resolve, reject, timer }); ctx.sendToBackend({ type: 'gig:request', requestId, action, input })
@@ -232,7 +233,16 @@ export function setup(ctx: SpindleFrontendContext) {
     else s.panel.append(el('p', '', 'This asset reference could not be resolved.'))
     s.panel.append(el('p', 'gig-muted', occurrence.source))
     const row = el('div', 'gig-actions')
-    row.append(action('Copy image link', async () => { await navigator.clipboard.writeText(resolved.url ? new URL(resolved.url, location.origin).href : occurrence.source); notify('Image link copied.') }))
+    row.append(action('Copy image link', async () => {
+      const url = resolved.url ? new URL(resolved.url, location.origin).href : occurrence.source
+      if (await copyText(url, s.panel)) notify('Image link copied.')
+      else {
+        let field = s.panel.querySelector<HTMLInputElement>('[data-copy-link]')
+        if (!field) { field = el('input'); field.type = 'text'; field.readOnly = true; field.dataset.copyLink = ''; field.setAttribute('aria-label', 'Image link to copy'); s.panel.append(field) }
+        field.value = url; field.focus(); field.select()
+        notify('Automatic copying is unavailable. Copy the selected image link.')
+      }
+    }))
     if (resolved.url) row.append(action('Use as set reference', async () => {
       await requirePermissions()
       let referenceId = resolved.imageId
@@ -493,8 +503,8 @@ export function setup(ctx: SpindleFrontendContext) {
   void safe(() => bootstrap(true))()
   return () => {
     destroyed = true; stopRequested = true; promptAbort?.abort(); clearTimeout(settingsTimer)
-    if (running) ctx.sendToBackend({ type: 'gig:request', requestId: crypto.randomUUID(), action: 'stop', input: { characterId: batchCharacter, ids: batchIds } })
-    ctx.sendToBackend({ type: 'gig:request', requestId: crypto.randomUUID(), action: 'settings', input: settings })
+    if (running) ctx.sendToBackend({ type: 'gig:request', requestId: createRequestId(), action: 'stop', input: { characterId: batchCharacter, ids: batchIds } })
+    ctx.sendToBackend({ type: 'gig:request', requestId: createRequestId(), action: 'settings', input: settings })
     closeSheet?.(); disposers.forEach(fn => fn()); handles.forEach(h => h.destroy()); pending.forEach(p => { clearTimeout(p.timer); p.reject(new Error('Extension closed')) }); pending.clear(); removeStyle(); tab.destroy()
   }
 }

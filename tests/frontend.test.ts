@@ -4,12 +4,15 @@ import { setup } from '../src/frontend'
 import { fixture } from './engine.test'
 import { DEFAULT_SETTINGS, type Job } from '../src/types'
 
-test.each(['selector', 'unwired', 'legacy'])('drawer workflow with %s active-character API: prompt reuse, removal/undo, filters, and switching', async mode => {
-  const win = new Window({ url: 'http://localhost:4318' }), saved = new Map<string, PropertyDescriptor | undefined>()
+test.each(['selector', 'unwired', 'legacy', 'lan-http'])('drawer workflow with %s browser: prompt reuse, removal/undo, filters, and switching', async mode => {
+  const win = new Window({ url: mode === 'lan-http' ? 'http://192.168.1.3:4318' : 'http://localhost:4318' }), saved = new Map<string, PropertyDescriptor | undefined>()
   for (const key of ['document', 'window', 'location', 'navigator', 'HTMLElement', 'FileReader']) {
     saved.set(key, Object.getOwnPropertyDescriptor(globalThis, key)); Object.defineProperty(globalThis, key, { value: (win as any)[key] || (key === 'window' ? win : undefined), configurable: true, writable: true })
   }
   const previousFetch = globalThis.fetch, f = fixture(), replies: Array<(payload: any) => void> = [], states: Array<(payload: any) => void> = [], events = new Map<string, () => void>()
+  const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'crypto')!
+  const httpCrypto = { getRandomValues: globalThis.crypto.getRandomValues.bind(globalThis.crypto) }
+  const requests: string[] = []
   let active: any = { characterId: 'c1', chatId: 'chat' }, promptCalls = 0
   globalThis.fetch = (async (url: any) => {
     if (String(url).includes('/settings/')) return Response.json({ value: {} })
@@ -28,6 +31,7 @@ test.each(['selector', 'unwired', 'legacy'])('drawer workflow with %s active-cha
   const flush = async () => { for (let i = 0; i < 20; i++) await new Promise(r => setTimeout(r, 1)) }
   const find = (text: string) => Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(b => b.textContent === text && !b.closest('[hidden]'))!
   try {
+    if (mode === 'lan-http') Object.defineProperty(globalThis, 'crypto', { configurable: true, value: httpCrypto })
     cleanup = setup({
       ui: { registerDrawerTab: () => ({ root: mount, onActivate: () => () => {}, setBadge: () => {}, destroy: () => mount.remove() }) },
       dom: { addStyle: () => () => {} }, components: { mountSelect: mounted, mountTextInput: mounted, mountTextArea: (t: any, o: any) => mounted(t, o, 'textarea'), mountNumericInput: mounted },
@@ -37,6 +41,7 @@ test.each(['selector', 'unwired', 'legacy'])('drawer workflow with %s active-cha
       events: { on: (key: string, fn: any) => { events.set(key, fn); return () => {} } }, characters: { get: async () => f.card() },
       onBackendMessage: (fn: any) => { replies.push(fn); return () => {} },
       sendToBackend: async (message: any) => {
+        requests.push(message.requestId)
         const p = message.input; let result: unknown, error: string | undefined
         try {
           switch (message.action) {
@@ -56,6 +61,9 @@ test.each(['selector', 'unwired', 'legacy'])('drawer workflow with %s active-cha
       },
     } as any)
     await flush(); expect(mount.textContent).toContain('Mira'); expect(mount.querySelectorAll('.gig-card')).toHaveLength(2)
+    // The backend fixture shares this test realm, but runs in Bun in production.
+    // Restore its native Crypto before exercising the server-side generation jobs.
+    Object.defineProperty(globalThis, 'crypto', cryptoDescriptor)
     find('View/edit image prompt').click(); await flush()
     const prompt = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Image prompt"]')!; expect(prompt.value).toBe('Original image prompt'); prompt.value = 'Edited image prompt'
     find('Save prompt only').click(); await flush(); expect(promptCalls).toBe(1)
@@ -71,7 +79,10 @@ test.each(['selector', 'unwired', 'legacy'])('drawer workflow with %s active-cha
     expect(events.has('SPINDLE_PERMISSION_CHANGED')).toBe(true)
     active = {}; states.forEach(fn => fn(active)); events.get('CHAT_SWITCHED')?.(); await flush(); expect(mount.textContent).toContain('No character selected')
   } finally {
-    cleanup?.(); await flush(); globalThis.fetch = previousFetch
+    if (mode === 'lan-http') Object.defineProperty(globalThis, 'crypto', { configurable: true, value: httpCrypto })
+    try { cleanup?.(); expect(new Set(requests).size).toBe(requests.length) }
+    finally { Object.defineProperty(globalThis, 'crypto', cryptoDescriptor) }
+    await flush(); globalThis.fetch = previousFetch
     for (const [key, descriptor] of saved) if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]
     await win.happyDOM.close()
   }
