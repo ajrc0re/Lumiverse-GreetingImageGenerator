@@ -132,6 +132,8 @@ var styles_default = `.gig { --g-accent: var(--lumiverse-primary, #a594db); --g-
 .gig-sheet > img { width: 100%; max-height: 65vh; object-fit: contain; border-radius: 9px; background: var(--g-card); }
 .gig-sheet .gig-actions { margin-top: 0; padding-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; position: sticky; bottom: 0; background: var(--g-bg); }
 .gig-reference { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; }
+.gig button.gig-review-preview { width: 64px; height: 64px; padding: 0; border-radius: 8px; overflow: hidden; cursor: zoom-in; }
+.gig-review-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .gig-recovery { border-top: 1px solid var(--g-border); margin-top: 10px; padding-top: 10px; display: grid; gap: 8px; }
 .gig-inline-check { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; cursor: pointer; }
 @keyframes gig-pulse { 50% { opacity: .3; } }
@@ -777,7 +779,14 @@ function setup(ctx) {
     const panel = el("div", "gig-recovery"), row = el("div", "gig-row");
     if (job.imageId || job.publicUrl) {
       if (job.localUrl || job.publicUrl) {
-        const thumb = image(job.publicUrl || job.localUrl, "Saved result", "gig-reference");
+        const url = job.publicUrl || job.localUrl;
+        const thumb = action("", () => {
+          const preview = sheet(`Image preview · ${job.title}`);
+          preview.panel.append(image(url, job.title));
+        }, "gig-review-preview");
+        thumb.setAttribute("aria-label", `Preview saved image for ${job.title}`);
+        thumb.title = "View full-size image";
+        thumb.append(image(url, "Saved result"));
         panel.append(thumb);
       }
       const add = action("Apply to greeting…", () => applyResult(job, char));

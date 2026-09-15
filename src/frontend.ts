@@ -189,7 +189,12 @@ export function setup(ctx: SpindleFrontendContext) {
   function recovery(job: Job, char: Character) {
     const panel = el('div', 'gig-recovery'), row = el('div', 'gig-row')
     if (job.imageId || job.publicUrl) {
-      if (job.localUrl || job.publicUrl) { const thumb = image(job.publicUrl || job.localUrl!, 'Saved result', 'gig-reference'); panel.append(thumb) }
+      if (job.localUrl || job.publicUrl) {
+        const url = job.publicUrl || job.localUrl!
+        const thumb = action('', () => { const preview = sheet(`Image preview · ${job.title}`); preview.panel.append(image(url, job.title)) }, 'gig-review-preview')
+        thumb.setAttribute('aria-label', `Preview saved image for ${job.title}`); thumb.title = 'View full-size image'
+        thumb.append(image(url, 'Saved result')); panel.append(thumb)
+      }
       const add = action('Apply to greeting…', () => applyResult(job, char)); add.disabled = running; row.append(add)
       if (!job.publicUrl && job.settings.host !== 'local') {
         const retry = action('Retry upload', () => retryJobs([job])); retry.disabled = running; row.append(retry)
