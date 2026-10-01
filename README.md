@@ -1,3 +1,5 @@
+![](assets/art-banner.png)
+
 # Lumiverse Greeting Image Generator
 
 Illustrate existing character greetings in a native Lumiverse drawer. The extension adds or removes image markup; it never writes greeting prose or changes existing chat messages.
